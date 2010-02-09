@@ -1,0 +1,49 @@
+<p>Testing the commonjs/modules/absolute test with 
+preloaded modules.
+
+<p>You should see the following text in the test output box below:
+
+<pre style="border-width:1; border-style:solid; padding:1em">
+PASS require works with absolute identifiers
+DONE
+</pre>
+
+<p><b>test output:</b>
+<b><pre id="console" style="border-width:1; border-style:solid; padding:1em"></pre></b>
+
+<!-- ===========================================================================
+include modjewel-require.js to get the require() function and friends
+============================================================================ -->
+<script src="../../../modjewel-require.js"></script>
+
+<!-- ===========================================================================
+the tests require a sys.print() function be defined
+============================================================================ -->
+<script>
+consolePre = document.getElementById("console")
+
+var print = undefined
+
+require.preload('system', function(require, exports, module) {
+   exports.stdio = {}
+   exports.stdio.print = function(message, label) {
+      consolePre.innerHTML += message + "\n"
+   }
+})
+</script>
+
+<!-- ===========================================================================
+include our preloadable modules
+============================================================================ -->
+<script src="b.mj.js"></script>
+<script src="program.mj.js"></script>
+<script src="submodule/a.mj.js"></script>
+<script src="test.mj.js"></script>
+
+<!-- ===========================================================================
+run the main module
+============================================================================ -->
+<script>
+require("program")
+</script>
+

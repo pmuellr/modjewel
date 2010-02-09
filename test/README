@@ -1,0 +1,15 @@
+This directory contains a number of tests for modjewel-require.
+
+Use the testers.html to launch all the tests from links.
+
+- commonjs contain tests from http://github.com/kriskowal/commonjs
+
+- set-exports contains tests for the require.setExports() function
+
+- preload contains some tests for the preload facility
+
+The tests in commonjs and set-exports are tested by opening the
+modjewel-require-test.html file in a browser.  
+
+The tests in preload are run differently.  See the README in that directory
+for more information.

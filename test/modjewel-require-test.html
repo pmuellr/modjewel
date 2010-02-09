@@ -1,0 +1,198 @@
+<html>
+<head>
+<title>modjewel-require browser test</title>
+<script src="../modjewel-require.js"></script>
+</head>
+
+<body onload="runTests()">
+<h1>modjewel-require browser test</h1>
+
+<p>Implementation:
+<span id="require.implementation"></span>
+<span id="require.version"></span>
+
+<h2>results</h2>
+<div style="margin-left:2em">
+<table id="results-table" cellpadding="5" cellspacing="0" border="1">
+</table>
+</div>
+
+<div style="margin-left:2em">
+
+<div id='still-running-div' style='display:none; color:#F00'>
+<p><b>Tests are still running or have hit an error</b>
+</div>
+
+<div id='done-running-div' style='display:none; color:#0F0'>
+<p><b>All tests have been run</b>
+</div>
+
+</div>
+
+<h2>console output</h2>
+<div style="margin-left:2em">
+<pre id="console-pre">
+</pre>
+</div>
+
+<div id="iframe-div"></div>
+</body>
+
+<script>
+var Tests = [
+    "commonjs/modules/absolute",
+    "commonjs/modules/cyclic",
+    "commonjs/modules/determinism",
+    "commonjs/modules/exactExports",
+    "commonjs/modules/hasOwnProperty",
+    "commonjs/modules/method",
+    "commonjs/modules/missing",
+    "commonjs/modules/monkeys",
+    "commonjs/modules/nested",
+    "commonjs/modules/relative",
+//    "commonjs/modules/transitive",
+    "set-exports/basic",
+    "set-exports/calledAfter",
+]
+
+var ResultsTable    = document.getElementById("results-table")
+var ConsolePre      = document.getElementById("console-pre")
+var IFrameDiv       = document.getElementById("iframe-div")
+var StillRunningDiv = document.getElementById("still-running-div")
+var DoneRunningDiv  = document.getElementById("done-running-div")
+var CurrentTest     = {}
+
+//-----------------------------------------------------------------
+function runTests() {
+    document.getElementById("require.implementation").innerHTML = require.implementation
+    document.getElementById("require.version").innerHTML = require.version
+
+    CurrentTest.index = 0
+    runNextTest()
+}
+
+//-----------------------------------------------------------------
+function runTest(test) {
+    IFrameDiv.innerHTML = ""
+    IFrameDiv.innerHTML = "<iframe id='test-frame' width='100%'>"
+    
+    logTitle("running test: " + test)
+    
+    var testFrame = document.getElementById("test-frame")
+    testFrame.contentDocument.open()
+    testFrame.contentDocument.write(getIFrameContents(test))
+    testFrame.contentDocument.close()
+    
+    log()
+}
+
+//-----------------------------------------------------------------
+function reportTest() {
+    
+    var currentTestName = Tests[CurrentTest.index]
+
+    StillRunningDiv.style.display = "block"
+    
+    var row
+    if (CurrentTest.error) {
+        row = "<tr><td><b>" + currentTestName + "<" + "/b><td style='background-color:#F70'>errored"
+    }
+    else if (CurrentTest.fail) {
+        row = "<tr><td><b>" + currentTestName + "<" + "/b><td style='background-color:#F00'>failed"
+    }
+    else {
+        row = "<tr><td><b>" + currentTestName + "<" + "/b><td style='background-color:#0F0'>passed"
+    }
+    
+    ResultsTable.innerHTML += "<tr>" + row
+    
+    CurrentTest.fail  = false
+    CurrentTest.error = false
+
+    CurrentTest.index++
+    
+    runNextTest()
+}
+
+//-----------------------------------------------------------------
+function runNextTest() {
+    
+    if (CurrentTest.index >= Tests.length) {
+        logTitle("all tests complete") 
+        StillRunningDiv.style.display = "none"
+        DoneRunningDiv.style.display  = "block"
+        
+        setTimeout(function() {
+            IFrameDiv.parentNode.removeChild(IFrameDiv)
+        }, 100)
+    }
+    else {
+        setTimeout(function() {
+            runTest(Tests[CurrentTest.index])
+        }, 100)
+    }
+}
+
+//-----------------------------------------------------------------
+function logTitle(title) {
+    log()
+    log("----------------------------------------------------------------------")
+    log(title)
+    log("----------------------------------------------------------------------")
+}
+
+//-----------------------------------------------------------------
+function log(message, label, test) {
+    if (null == message) message = ""
+    ConsolePre.innerHTML += message + "\n"
+    
+    if (label == "fail") CurrentTest.fail = true
+    
+    if (label == "info") reportTest()
+    
+    if (label == "error") {
+        CurrentTest.error = true
+        reportTest()
+    }
+}
+
+//-----------------------------------------------------------------
+function getIFrameContents(test) {
+    var lines = []
+    lines.push("<p>Running test: " + test)
+    
+    var requireScript = "../modjewel-require.js"
+    
+    lines.push("<script src='" + requireScript + "'><" + "/script>")
+    lines.push("<script>")
+    lines.push("print = undefined")
+    lines.push("require.preload('system', function(require, exports, module) {")
+    lines.push("   exports.stdio = {}")
+    lines.push("   exports.stdio.print = function(message, label) {")
+    lines.push("      parent.log(message, label, '" + test + "')")
+    lines.push("   }")
+    lines.push("})")
+    lines.push("require.paths = ['" + test + "/']")
+    lines.push("require('program')")
+    lines.push("<" + "/script>")
+    
+    return lines.join("\n")
+}
+
+//-----------------------------------------------------------------
+function insertTableRow(row) {
+    ResultsTable.innerHTML += "<tr>" + row
+}
+
+//-----------------------------------------------------------------
+function clearTable() {
+    ResultsTable.innerHTML = ""
+}
+
+//-----------------------------------------------------------------
+function clearConsole() {
+    ConsolePre.innerHTML = ""
+}
+
+</script>
+</html>
