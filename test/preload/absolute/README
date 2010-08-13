@@ -1,6 +1,0 @@
-The test in this directory tests the preload capability.
-
-First, you will need to run the build-mjs.sh utility to build the .mj.js
-files.  After that, open the absolute.html file and you'll see the
-expected and actual output.
-

@@ -33,6 +33,12 @@
 //----------------------------------------------------------------------------
 
 //----------------------------------------------------------------------------
+// only supports "preloaded" modules ala require.define (Transport/D)
+//    http://wiki.commonjs.org/wiki/Modules/Transport/D
+// but only supports the first parameter
+//----------------------------------------------------------------------------
+
+//----------------------------------------------------------------------------
 // function wrapper
 //----------------------------------------------------------------------------
 (function(){
@@ -41,80 +47,123 @@
 // some constants
 //----------------------------------------------------------------------------
 var PROGRAM = "modjewel"
-var VERSION = "0.2.0"
+var VERSION = "0.3.0"
 
 //----------------------------------------------------------------------------
 // if require() is already defined, leave
 //----------------------------------------------------------------------------
-if (window.require) {
-    log("require() function already defined")
-    return
-}
+if (this.require) error("require already defined")
 
 //----------------------------------------------------------------------------
-// a function to log a message; writes it to the console
+// "globals" (local to this function scope though)
 //----------------------------------------------------------------------------
-function log(message) {
-    if (!message) message = ""
+var ModuleStore        = {}
+var ModulePreloadStore = {}
+
+//----------------------------------------------------------------------------
+// the require function
+//----------------------------------------------------------------------------
+function get_require(currentModule) {
+    var result = function require(moduleId) {
+
+        if (moduleId.match(/^\.{1,2}\//)) {
+            moduleId = normalize(currentModule, moduleId)
+        }
+
+        if (ModuleStore.hasOwnProperty("_" + moduleId)) {
+            return ModuleStore["_" + moduleId].exports
+        }
+
+        if (!ModulePreloadStore.hasOwnProperty("_" + moduleId)) {
+            error("module '" + moduleId + "' not found, must be preloaded")
+        }
+        
+        var moduleDefFunction = ModulePreloadStore["_" + moduleId]
+
+        var module = { 
+            id:         moduleId, 
+            uri:        moduleId, 
+            exports:    {}
+        }
+
+        module.setExports = get_module_setExports(module)
+        
+        var newRequire            = get_require(module) 
+
+        ModuleStore["_" + moduleId] = module
+        
+        moduleDefFunction.call({}, newRequire, module.exports, module)
+        
+        return module.exports
+    }
     
-    console.log(PROGRAM + " " + VERSION + ": " + message)
+    result.define         = require_define
+    result.implementation = PROGRAM
+    result.version        = VERSION
+    
+    return result
 }
 
 //----------------------------------------------------------------------------
-// retrieve a URL's content via HTTP GET
+// safe version of hasOwnProperty
 //----------------------------------------------------------------------------
-function httpGet(url) {
-	var xhr = new XMLHttpRequest()
-	xhr.open("GET", url, false)
-	xhr.send(null)
-	
-	// note, Chrome on Mac returns status=0 for file: URLs even if
-	// they don't exist, breaking some tests in commonjs
-	if ((xhr.status == 0) || (xhr.status == 200)) {
-	    if (typeof xhr.responseText != "string") return undefined
-    	return xhr.responseText
+function hop(object, name) {
+    return Object.prototype.hasOwnProperty.call(object, name)
+}
+
+//----------------------------------------------------------------------------
+// used by pre-built modules that can be included via <script src=>
+// a simplification of 
+//    http://wiki.commonjs.org/wiki/Modules/Transport/D
+// but only supports the first parameter
+//----------------------------------------------------------------------------
+function require_define(moduleSet) {
+    for (var moduleName in moduleSet) {
+        if (!hop(moduleSet, moduleName)) continue
+        
+        if (moduleName.match(/^\./)) {
+            error("require.define(): moduleName in moduleSet must not start with '.': '" + moduleName + "'")
+        }
+        
+        var moduleDefFunction = moduleSet[moduleName]
+        
+        if (typeof moduleDefFunction != "function") {
+            error("require.define(): expecting a function as value of '" + moduleName + "' in moduleSet")
+        }
+        
+        if (ModulePreloadStore.hasOwnProperty("_" + moduleName)) {
+            error("require.define(): module '" + moduleName + "' has already been preloaded")
+        }
+
+        ModulePreloadStore["_" + moduleName] = moduleDefFunction
     }
 }
 
 //----------------------------------------------------------------------------
-// strip leading chars
+// gets a setExports function for a module
 //----------------------------------------------------------------------------
-function stripLeading(string, c) {
-    var regex = new RegExp("^" + c + "+")
-    return string.replace(regex, "")
-}
-
-//----------------------------------------------------------------------------
-// strip trailing chars
-//----------------------------------------------------------------------------
-function stripTrailing(string, c) {
-    var regex = new RegExp(c + "+$")
-    return string.replace(regex, "")
-}
-
-//----------------------------------------------------------------------------
-// join two parts of a URL
-//----------------------------------------------------------------------------
-function urlJoin(urlBase, urlPart) {
-    return stripTrailing(urlBase, "/") + "/" + stripLeading(urlPart, "/")
-}
-
-//----------------------------------------------------------------------------
-// retrieve a module's content
-//----------------------------------------------------------------------------
-function getModuleSource(uri) {
-    for (var i=0; i<require.paths.length; i++) {
-        var url = urlJoin(require.paths[i], uri)
-        var contents = httpGet(url)
-        if (contents != null) return {url: url, contents: contents}
+function get_module_setExports(module) {
+    return function setExports(object) {
+        module.exports = object
     }
+}
+
+//----------------------------------------------------------------------------
+// get the path of a module
+//----------------------------------------------------------------------------
+function getModulePath(module) {
+    if (!module || !module.id) return ""
+    
+    var parts = module.id.split("/")
+    
+    return parts.slice(0, parts.length-1).join("/")
 }
 
 //----------------------------------------------------------------------------
 // normalize a 'file name' with . and .. with a 'directory name'
 //----------------------------------------------------------------------------
-function normalize(dir, file) {
-    var dirParts  = stripTrailing(dir, "/").split("/")
+function normalize(module, file) {
+    var dirParts  = getModulePath(module).split("/")
     var fileParts = file.split("/")
     
     for (var i=0; i<fileParts.length; i++) {
@@ -128,7 +177,7 @@ function normalize(dir, file) {
                 dirParts.pop()
             }
             else {
-                throw new Error("Error normalizing '" + dir + "' and '" + file + "'")
+                error("error normalizing '" + dir + "' and '" + file + "'")
             }
         }
         
@@ -141,110 +190,18 @@ function normalize(dir, file) {
 }
 
 //----------------------------------------------------------------------------
-// the require function
+// throw an error
 //----------------------------------------------------------------------------
-function require(moduleId) {
-    var origModuleId = moduleId
-    
-    if (moduleId.match(/^\.{1,2}\//)) {
-        moduleId = normalize(require.__currentModulePath, moduleId)
-    }
-    
-    var moduleUri = moduleId + ".js"
-
-    if (require.__modules.hasOwnProperty(moduleUri)) {
-        return require.__modules[moduleUri].exports
-    }
-    
-    var originalModulePath = require.__currentModulePath
-    require.__currentModulePath = moduleId.substring(0, moduleId.lastIndexOf('/')+1)
-    
-    var originalModule = require.__currentModule
-    
-    try {
-        var moduleFunction
-        var moduleSourceUri
-        
-        if (require.__preload.hasOwnProperty(moduleUri)) {
-            moduleFunction  = require.__preload[moduleUri]
-            moduleSourceUri = ""
-        }
-        else {
-            var moduleSource = getModuleSource(moduleUri)
-            if (moduleSource == null) {
-                throw new Error("unable to load module " + origModuleId)
-            }
-            
-            source = moduleSource.contents
-            source += "\n//@ sourceURL=" + moduleUri
-            moduleFunction = new Function("require", "exports", "module", source)
-            moduleSourceUri = moduleSource.uri
-        }
-
-        function get_setExports(module) {
-            return function getExports(object) {
-                if (module != require.__currentModule) {
-                    throw new Error("invalid call to require.setExports")
-                }
-                
-                module.exports = object
-            }
-        }
-        
-        var context = {}
-        var exports = {}
-        var module = { 
-            id:         moduleId, 
-            uri:        moduleSourceUri, 
-            exports:    exports
-        }
-        
-        module.setExports = get_setExports(module)
-
-        require.__modules[moduleUri] = module
-        require.__currentModule = module
-        
-        moduleFunction.call(context, require, exports, module)
-        
-        return module.exports
-    }
-    
-    finally {
-        require.__currentModulePath = originalModulePath
-        require.__currentModule     = originalModule
-    }
+function error(message) {
+    throw new Error(PROGRAM + ": " + message)
 }
 
 //----------------------------------------------------------------------------
 // make the require function a global
 //----------------------------------------------------------------------------
-window.require = require
+this.require = get_require()
+
 
 //----------------------------------------------------------------------------
-// set some version information
-//----------------------------------------------------------------------------
-require.implementation = PROGRAM
-require.version        = VERSION
+})();
 
-//----------------------------------------------------------------------------
-// initialize require.paths
-//----------------------------------------------------------------------------
-require.paths = [""]
-
-//----------------------------------------------------------------------------
-// used by pre-built modules that can be included via <script src=>
-//----------------------------------------------------------------------------
-require.preload = function require_preload(moduleName, moduleDefFunction) {
-    require.__preload[moduleName + ".js"] = moduleDefFunction
-}
-
-//----------------------------------------------------------------------------
-// initialize internal stuff
-//----------------------------------------------------------------------------
-require.__currentModulePath = ""
-require.__currentModule = undefined
-require.__modules = {}
-require.__preload = {}
-
-//----------------------------------------------------------------------------
-})()

@@ -50,6 +50,10 @@ table {
 </body>
 
 <script>
+if (window.location.href.match(/^file:/)) {
+    alert("These tests will not work when run from a file:/ scheme")
+}
+
 var Tests = [
     "commonjs/modules/absolute",
     "commonjs/modules/cyclic",

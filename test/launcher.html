@@ -1,0 +1,15 @@
+<pre id='output'></pre>
+
+<script>
+window.print = function(message) {
+    var out = document.getElementById('output')
+    
+    var style = ""
+    if (message.match(/^PASS/)) style = "color:#0F0"
+    if (message.match(/^FAIL/)) style = "color:#F00"
+    
+    out.innerHTML += "<span style='" + style + "'>" + message + "</span><br>"
+}
+</script>
+
+<script src="launcher.js"></script>
