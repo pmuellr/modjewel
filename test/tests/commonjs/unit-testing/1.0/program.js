@@ -161,3 +161,29 @@ exports['test throw AssertionError'] = function () {
 if (module == require.main)
     require("os").exit(require("test").run(exports));
 
+//----------------------------------------------------------------------------
+// additions below for modjewels
+//----------------------------------------------------------------------------
+exports.logger = {}
+exports.logger.afterOne = function(test) {
+    //    name:      name of the test function 
+    //    func:      the actual test function
+    //    container: object that contains the test function
+    //    state:     state of the test ("waiting", "passed", "failed", "exception")
+    //    exception: exception that occurred while running the test
+    
+    var message
+    if      (test.state == "passed")    message = "PASS "
+    else if (test.state == "failed")    message = "FAIL "
+    else if (test.state == "exception") message = "FAIL "
+    
+    message += test.name
+    
+    if (test.state == "exception") {
+        message += " " + test.exception
+    }
+    
+    print(message)
+}
+
+require("test").run(exports)

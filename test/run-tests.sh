@@ -6,7 +6,6 @@ rm -rf tmp
 mkdir  tmp
 cp -R tests/ tmp
 
-
 ./test-commonjs-dir.sh tmp/commonjs/modules/1.0/absolute
 ./test-commonjs-dir.sh tmp/commonjs/modules/1.0/cyclic
 ./test-commonjs-dir.sh tmp/commonjs/modules/1.0/determinism
@@ -21,3 +20,6 @@ cp -R tests/ tmp
 
 ./test-commonjs-dir.sh tmp/set-exports/basic
 ./test-commonjs-dir.sh tmp/set-exports/calledAfter
+
+./test-commonjs-dir-unit-testing.sh tmp/commonjs/unit-testing/1.0
+
