@@ -6,6 +6,11 @@
 
 // strangely meta, no?
 
+//----------------------------------------------------------------------------
+// addition below for modjewels
+//----------------------------------------------------------------------------
+require("keys")
+
 var assert = require('assert');
 
 function makeBlock(f) {

@@ -1,0 +1,22 @@
+.pass, .fail, .info {
+    font-family:      monospace;
+    margin-left:      1em;
+}
+
+.pass {
+    background-color: #DFD;
+}
+
+.fail {
+    background-color: #F88;
+}
+
+.info {
+    background-color: #DDF;
+}
+
+.test {
+    margin-top:  1em;
+    font-weight: bold;
+    font-size:   120%;
+}

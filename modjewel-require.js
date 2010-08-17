@@ -43,6 +43,8 @@
 //----------------------------------------------------------------------------
 (function(){
 
+var GLOBAL = this
+
 //----------------------------------------------------------------------------
 // some constants
 //----------------------------------------------------------------------------
@@ -52,7 +54,7 @@ var VERSION = "0.3.0"
 //----------------------------------------------------------------------------
 // if require() is already defined, leave
 //----------------------------------------------------------------------------
-if (this.require) error("require already defined")
+if (GLOBAL.require) error("require already defined")
 
 //----------------------------------------------------------------------------
 // "globals" (local to this function scope though)
@@ -86,17 +88,24 @@ function get_require(currentModule) {
             exports:    {}
         }
 
-        module.setExports = get_module_setExports(module)
+        module.setExports  = get_module_setExports(module)
         
-        var newRequire            = get_require(module) 
+        var newRequire = get_require(module) 
 
         ModuleStore["_" + moduleId] = module
         
-        moduleDefFunction.call({}, newRequire, module.exports, module)
+        module.__isLoading = true
+        try {
+            moduleDefFunction.call({}, newRequire, module.exports, module)
+        }
+        finally {
+            module.__isLoading = false
+        }
         
         return module.exports
     }
     
+    result.reset          = require_reset
     result.define         = require_define
     result.implementation = PROGRAM
     result.version        = VERSION
@@ -109,6 +118,17 @@ function get_require(currentModule) {
 //----------------------------------------------------------------------------
 function hop(object, name) {
     return Object.prototype.hasOwnProperty.call(object, name)
+}
+
+//----------------------------------------------------------------------------
+// reset the stores
+//----------------------------------------------------------------------------
+function require_reset() {
+    ModuleStore        = {}
+    ModulePreloadStore = {}
+    
+    GLOBAL.require = undefined
+    GLOBAL.require = get_require()
 }
 
 //----------------------------------------------------------------------------
@@ -144,6 +164,10 @@ function require_define(moduleSet) {
 //----------------------------------------------------------------------------
 function get_module_setExports(module) {
     return function setExports(object) {
+        if (!module.__isLoading) {
+            error("module.setExports() can only be used when the module is loading")
+        }
+        
         module.exports = object
     }
 }
@@ -199,7 +223,7 @@ function error(message) {
 //----------------------------------------------------------------------------
 // make the require function a global
 //----------------------------------------------------------------------------
-this.require = get_require()
+require_reset()
 
 
 //----------------------------------------------------------------------------

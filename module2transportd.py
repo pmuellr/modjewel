@@ -59,7 +59,7 @@ def processDir(dir, path=None):
             continue
         
         if not os.path.isfile(fullEntry):        continue
-        if     entry.endswith(".transportc.js"): continue
+        if     entry.endswith(".transportd.js"): continue
         if not entry.endswith(".js"):            continue
     
     

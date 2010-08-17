@@ -1,0 +1,44 @@
+<html>
+<head>
+<title>@title@</title>
+<script src='modjewel-require.js'></script>
+@scripts@
+<script>
+var outputPre
+
+window.addEventListener("load", onLoad, false)
+
+//----------------------------------------------------------------------------
+function onLoad() {
+    outputPre = document.getElementById("output")
+
+    if (window.parent !== window) {
+        window.parent.testsStarting("@title@")
+    }
+    
+    require("program")
+}
+
+//----------------------------------------------------------------------------
+function print(message, status) {
+
+    var className
+    
+    if      (/^PASS/.exec(message)) className = "pass"
+    else if (/^FAIL/.exec(message)) className = "fail"
+    else                            className = "info"
+    
+    var line = "<div class='" + className + "'>" + message + "</div>"
+    outputPre.innerHTML += line
+    
+    if (window.parent !== window) {
+        window.parent.oneTestComplete(className, message)
+    }
+    
+}
+</script>
+</head>
+<body>
+<pre id="output"></pre>
+</body>
+</html>

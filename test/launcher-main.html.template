@@ -1,0 +1,52 @@
+<html>
+<head>
+<link href="../test.css" rel="stylesheet" type="text/css">
+<script>
+var outputDiv
+var queue = []
+
+window.addEventListener("load", onLoad, false)
+
+//----------------------------------------------------------------------------
+function onLoad() {
+    outputDiv = document.getElementById("output")
+
+    if (queue.length > 0) {
+        outputDiv.innerHTML += queue.join("\n")
+        queue = []
+    }
+    
+}
+
+//----------------------------------------------------------------------------
+function testsStarting(url) {
+    output = "<div class='test'>" + url + "</div>"
+    
+    if (!outputDiv) {
+        queue.push(output)
+    }
+    else {
+        outputDiv.innerHTML += output
+    }
+}
+
+//----------------------------------------------------------------------------
+function oneTestComplete(status, message) {
+    output = "<div class='" + status + "'>" + message + "</div>"
+
+    if (!outputDiv) {
+        queue.push(output)
+    }
+    else {
+        outputDiv.innerHTML += output
+    }
+}
+</script>
+</head>
+<body>
+<div id="output"></div>
+<div style="display:none" id="iframes">
+@iframes@
+</div>
+</body>
+</html>
