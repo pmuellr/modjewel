@@ -31,16 +31,43 @@ import optparse
 PROGRAM = os.path.basename(sys.argv[0])
 VERSION = "0.3.0"
 
+OutDir              = "."
+TransportDExtension = ".transportd.js"
+
 #-------------------------------------------------------------------------------
 #
 #-------------------------------------------------------------------------------
 def main():
+    global OutDir
 
-    dirs = sys.argv[1:]
+    usage        = "usage: %s [options] inDir inDir ..." % PROGRAM
+    version      = "%s %s" % (PROGRAM,VERSION)
+    description  = """
+Converts .js files in the inDir directories to Transport/D format.
+See: http://wiki.commonjs.org/wiki/Modules/Transport/D for more info.
+Each inDir is considered a 'root' directory for generating relative
+module names.
+""".strip()
+    parser = optparse.OptionParser(usage=usage, version=version, description=description)
     
-    if len(dirs) == 0: help()
+    parser.add_option("-o", "--out", dest="dirName", metavar = "DIR",
+        help="generate transportD files in DIR (default: %default)")
+    
+    parser.set_defaults(dirName=OutDir)
+    
+    (options, args) = parser.parse_args()
+    
+    OutDir = options.dirName
+    
+    help = False
+    if len(args) == 0:   help = True
+    elif args[0] == "?": help = True
+    
+    if help:
+        parser.print_help()
+        sys.exit(0)
         
-    for dir in dirs:
+    for dir in args:
         processDir(dir)
         
 #-------------------------------------------------------------------------------
@@ -49,23 +76,32 @@ def main():
 def processDir(dir, path=None):
     if path is None: path = []
     
+    if not os.path.exists(dir): error("directory does not exist: %s" % dir)
+    if not os.path.isdir(dir): error("path is not directory: %s" % dir)
+    
     entries = os.listdir(dir)
     
     for entry in entries:
-        fullEntry = "%s/%s" % (dir, entry)
+        fullEntry = os.path.join(dir, entry)
         
         if os.path.isdir(fullEntry):
             processDir(fullEntry, path + [entry])
             continue
         
-        if not os.path.isfile(fullEntry):        continue
-        if     entry.endswith(".transportd.js"): continue
-        if not entry.endswith(".js"):            continue
-    
+        if not os.path.isfile(fullEntry):           continue
+        if     entry.endswith(TransportDExtension): continue
+        if not entry.endswith(".js"):               continue
     
         baseName  = entry[:-3]
         iFileName = fullEntry
-        oFileName = "%s/%s.transportd.js" % (dir, baseName)
+        oDir      = "/".join(path)
+        oFileName = os.path.join(OutDir, oDir, baseName)
+        oFileName = "%s%s" % (oFileName, TransportDExtension)
+        
+        if False:
+            print "processing:   %s" % fullEntry
+            print "   oFileName: %s" % oFileName
+            continue
     
         iFile = file(iFileName)
         contents = iFile.read()
@@ -77,8 +113,20 @@ def processDir(dir, path=None):
         header  = 'require.define({"%s": function(require, exports, module) {' % moduleName
         trailer = '}});'
 
-        newContents = "%s\n\n%s\n%s\n" % (header, contents, trailer)
+        newContents = "%s %s\n%s\n" % (header, contents, trailer)
         
+        
+        oDirName = os.path.dirname(oFileName)
+        if os.path.exists(oDirName):
+            if not os.path.isdir(oDirName):
+                error("trying to generate a file in '%s' which isn't a directory" % oDirName)
+                
+        if not os.path.exists(oDirName):
+            try:
+                os.makedirs(oDirName)
+            except:
+                error("error creating output directory '%s'" % oDirName)
+                
         oFile = file(oFileName, "w")
         oFile.write(newContents)
         oFile.close()

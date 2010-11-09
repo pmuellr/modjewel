@@ -5,13 +5,15 @@ import sys
 import shutil
 import subprocess
 
+PROGRAM = sys.argv[0]
+
 #-------------------------------------------------------------------------------
 #
 #-------------------------------------------------------------------------------
 def main():
 
     # get directories
-    baseDir  = os.path.dirname(sys.argv[0])
+    baseDir  = os.path.dirname(PROGRAM)
     os.chdir(baseDir)
 
     testsDir = os.path.abspath("tests")
@@ -30,16 +32,17 @@ def main():
             error("out dir is not a directory: %s" % outDir)
 
         shutil.rmtree(outDir)
+        
+    os.makedirs(outDir)
 
+    tests = getTests("tests")
+    
     # copy testsDir into outDir
-    shutil.copytree(testsDir, outDir)
+#   shutil.copytree(testsDir, outDir)
 
     # now all work done in outDir
     os.chdir("out")
 
-    # get tests
-    tests = getTests()
-    
     # build the individual tests
     iframes = []
     for test in tests:
@@ -48,17 +51,8 @@ def main():
 
     iframesLines = "\n".join(iframes)
     
-    # run the rhino tests
-    for test in tests:
-        rhinoLauncher = os.path.join(test, "launcher-rhino.js")
-
-        print "running %s" % rhinoLauncher
-        output = run(["rhino", rhinoLauncher])
-        print output
-
-    
     # build the browser launcher
-    html = getLauncherMainHTML()
+    html = fileContents("../launcher-main.html.template")
 
     html = html.replace("@iframes@", iframesLines)
     
@@ -68,7 +62,8 @@ def main():
     oFile.close()
     
     print
-    print "generated browser test: %s" % os.path.abspath(oFileName)
+    print "Generated browser test: %s" % os.path.abspath(oFileName)
+    print "This file needs to be opened from an http:// url, not as a local file."
 
 #-------------------------------------------------------------------------------
 #
@@ -76,108 +71,50 @@ def main():
 def buildTest(testDir):
 
     # copy libraries
-    copyLibs(testDir)
+    output = run(["../../module2transportd.py", "-o", testDir, "../../lib"])
     
-    html = getLauncherInIFrameHTML()
+    #copy source
+    output = run(["../../module2transportd.py", "-o", testDir, os.path.join("..", testDir)])
+    
+    # copy modjewel-require.js
+    shutil.copy("../../modjewel-require.js", os.path.join(testDir, "modjewel-require.js"))
+    
+    html = fileContents("../launcher-in-iframe.html.template")
     
     # get the list of modules
-    origDir = os.getcwd()
-    os.chdir(testDir)
+    modules = [module for module in getModules(testDir)]
+    scripts = ["<script src='%s'></script>" % module for module in modules]
     
-    jsFiles = [jsFile[2:-3] for jsFile in getJsFiles(".")]
-    
-    scripts = []
-    for jsFile in jsFiles:
-        scripts.append("<script src='%s.transportd.js'></script>" % (jsFile))
-        
     scriptsLines = "\n".join(scripts)
     
     html = html.replace("@scripts@", scriptsLines)
-    html = html.replace("@title@", testDir[2:])
+    html = html.replace("@title@", testDir)
 
     # build HTML launcher for iframe
-    oFile = file("launcher-in-iframe.html", "w")
+    oFileName = os.path.join(testDir, "launcher-in-iframe.html")
+    oFile = file(oFileName, "w")
     oFile.write(html)
     oFile.close()
     
-    # back to original directory
-    os.chdir(origDir)
-
-    # build transport/D modules
-    output = run(["../../module2transportd.py", testDir])
-
-    # copy modjewel
-    shutil.copy("../../modjewel-require.js", testDir)
-
-    # build single file with all modules for rhino
-    rhinoLauncher = os.path.join(testDir, "launcher-rhino.js")
-    oFile = file(rhinoLauncher, "w")
-
-    sep = "\n\n//" + ("=" * 77) + "\n\n"
-    
-    content = fileContents(os.path.join(testDir, "modjewel-require.js"))
-    oFile.write(sep)
-    oFile.write(content)
-    
-    for jsFile in jsFiles:
-        content = fileContents(os.path.join(testDir, "%s.transportd.js" % jsFile))
-        oFile.write(sep)
-        oFile.write(content)
-    
-    oFile.write(sep)
-    oFile.write("require('program')\n")
-    
-    oFile.close()
-
 #-------------------------------------------------------------------------------
 #
 #-------------------------------------------------------------------------------
-def getLauncherInIFrameHTML():
-    iFile = file("../launcher-in-iframe.html.template")
-    contents = iFile.read()
-    iFile.close()
-    
-    return contents
-
-#-------------------------------------------------------------------------------
-#
-#-------------------------------------------------------------------------------
-def getLauncherMainHTML():
-    iFile = file("../launcher-main.html.template")
-    contents = iFile.read()
-    iFile.close()
-
-    return contents
-
-#-------------------------------------------------------------------------------
-#
-#-------------------------------------------------------------------------------
-def copyLibs(test):
-    if os.path.exists(os.path.join(test, "test.js")): return
-    
-    for entry in os.listdir("../../lib"):
-        shutil.copy(os.path.join("../../lib", entry), test)
-
-#-------------------------------------------------------------------------------
-#
-#-------------------------------------------------------------------------------
-def getJsFiles(test):
-    jsFiles = []
-    for root, dirs, files in os.walk(test):
+def getModules(testDir):
+    modules = []
+    for root, dirs, files in os.walk(testDir):
         for file in files:
-            if file == "modjewel-require.js": continue
-            if file.endswith(".transportd.js"): continue
+            if not file.endswith(".transportd.js"): continue
             
-            jsFiles.append(os.path.join(root, file))
+            modules.append(os.path.relpath(os.path.join(root, file), testDir))
 
-    return jsFiles
+    return modules
 
 #-------------------------------------------------------------------------------
 #
 #-------------------------------------------------------------------------------
-def getTests():
+def getTests(testDir):
     tests = []
-    for root, dirs, files in os.walk("."):
+    for root, dirs, files in os.walk(testDir):
         if "program.js" in files:
             tests.append(root)
             
@@ -187,7 +124,8 @@ def getTests():
 #
 #-------------------------------------------------------------------------------
 def run(cmdArgs):
-    return subprocess.Popen(cmdArgs, stdout=subprocess.PIPE).communicate()[0]
+    result = subprocess.Popen(cmdArgs, stdout=subprocess.PIPE).communicate()[0]
+    print result
 
 #-------------------------------------------------------------------------------
 #
