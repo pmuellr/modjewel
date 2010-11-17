@@ -110,7 +110,7 @@ def processDir(dir, path=None):
         moduleName = "%s/%s" % ("/".join(path), baseName)
         moduleName = moduleName.lstrip("/")
         
-        header  = 'require.define({"%s": function(require, exports, module) {' % moduleName
+        header  = ';require.define({"%s": function(require, exports, module) {' % moduleName
         trailer = '}});'
 
         newContents = "%s %s\n%s\n" % (header, contents, trailer)

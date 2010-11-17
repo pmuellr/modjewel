@@ -201,7 +201,7 @@ function normalize(module, file) {
                 dirParts.pop()
             }
             else {
-                error("error normalizing '" + dir + "' and '" + file + "'")
+                error("error normalizing '" + module + "' and '" + file + "'")
             }
         }
         
