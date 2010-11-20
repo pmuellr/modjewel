@@ -41,12 +41,6 @@ This module is not really supported, but a system module is supplied with a
 Extensions
 ==========
 
-module.setExport()
--------------------
-
-See the [CommonJS wiki](http://wiki.commonjs.org/wiki/Modules/SetExports)
-for more information.
-
 require.define()
 -----------------
 
@@ -56,6 +50,15 @@ to load modules - modules are never loaded dynamically.
 The object passed to this function is described in the 
 [Transport/D proposal](http://wiki.commonjs.org/wiki/Modules/Transport/D),
 but the second parameter is ignored.
+
+Utilities
+==========
+
+module2transportd.py
+--------------------
+
+Convert CommonJS modules to Transport/D format.  It can also generate a HTML
+test driver to test the modules in a browser.  
 
 
 Contact

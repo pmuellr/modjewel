@@ -1,27 +1,9 @@
 #!/usr/bin/env python
 
 #-------------------------------------------------------------------------------
-# The MIT License
-# 
 # Copyright (c) 2010 Patrick Mueller
 # 
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-# 
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-# 
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-# THE SOFTWARE.
+# The MIT License - see: http://www.opensource.org/licenses/mit-license.php
 #-------------------------------------------------------------------------------
 
 import os
@@ -29,7 +11,7 @@ import sys
 import optparse
 
 PROGRAM = os.path.basename(sys.argv[0])
-VERSION = "0.3.0"
+VERSION = "0.3.1"
 
 OutDir              = "."
 TransportDExtension = ".transportd.js"
@@ -51,8 +33,17 @@ module names.
     parser = optparse.OptionParser(usage=usage, version=version, description=description)
     
     parser.add_option("-o", "--out", dest="dirName", metavar = "DIR",
-        help="generate transportD files in DIR (default: %default)")
+        help="generate transportD files in DIR (default: %default)"
+    )
     
+    parser.add_option("--htmlFile", dest="htmlFile", metavar = "FILE",
+        help="generate an test driver for HTML in FILE"
+    )
+
+    parser.add_option("--htmlMain", dest="htmlMain", metavar = "CODE",
+        help="a line of code to start the test driver for HTML"
+    )
+
     parser.set_defaults(dirName=OutDir)
     
     (options, args) = parser.parse_args()
@@ -66,15 +57,47 @@ module names.
     if help:
         parser.print_help()
         sys.exit(0)
-        
+       
+    htmlFile = options.htmlFile
+    htmlMain = options.htmlMain
+
+    if htmlFile and not htmlMain: error("--htmlFile specified but not --htmlMain")
+    if htmlMain and not htmlFile: error("--htmlMain specified but not --htmlFile")
+    
     for dir in args:
-        processDir(dir)
+        modules = processDir(dir)
+
+    if not htmlFile and not htmlMain: return
+
+    contents = []
+
+    contents.append("<script src='modjewel-require.js'></script>")
+    contents.append("")
+
+    for module in modules:
+        contents.append("<script src='%s%s'></script>" % (module, TransportDExtension))
+
+    contents.append("")
+    contents.append("<script>")
+    contents.append(htmlMain)
+    contents.append("</script>")
+    contents.append("")
+    contents.append("<h1>check the console for test results</h1>")
+
+    htmlFileName = os.path.join(OutDir, htmlFile)
+    
+    htmlFile = file(htmlFileName, "w")
+    htmlFile.write("\n".join(contents))
+    htmlFile.close()
+    
+    log("generated test driver: %s" % htmlFileName)
         
 #-------------------------------------------------------------------------------
 #
 #-------------------------------------------------------------------------------
-def processDir(dir, path=None):
-    if path is None: path = []
+def processDir(dir, path=None, modules=None):
+    if path    is None: path = []
+    if modules is None: modules = []
     
     if not os.path.exists(dir): error("directory does not exist: %s" % dir)
     if not os.path.isdir(dir): error("path is not directory: %s" % dir)
@@ -85,7 +108,7 @@ def processDir(dir, path=None):
         fullEntry = os.path.join(dir, entry)
         
         if os.path.isdir(fullEntry):
-            processDir(fullEntry, path + [entry])
+            processDir(fullEntry, path + [entry], modules)
             continue
         
         if not os.path.isfile(fullEntry):           continue
@@ -107,8 +130,12 @@ def processDir(dir, path=None):
         contents = iFile.read()
         iFile.close()
         
+        if contents.startswith("#!"): contents = "// " + contents
+        
         moduleName = "%s/%s" % ("/".join(path), baseName)
         moduleName = moduleName.lstrip("/")
+        
+        modules.append(moduleName)
         
         header  = ';require.define({"%s": function(require, exports, module) {' % moduleName
         trailer = '}});'
@@ -132,6 +159,8 @@ def processDir(dir, path=None):
         oFile.close()
         
         log("generated: %s" % oFileName)
+        
+    return modules
 
 #-------------------------------------------------------------------------------
 #
@@ -142,7 +171,7 @@ def help():
     usage: 
        %s dir dir ...
 
-    Converts CommonJS module files to transport/D format.
+    Converts CommonJS module files to Transport/D format.
     
     For each directory passed, converts all .js files in the directory,
     recursively, to transport/D format, using the existing subdirectory
