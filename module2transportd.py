@@ -165,29 +165,6 @@ def processDir(dir, path=None, modules=None):
 #-------------------------------------------------------------------------------
 #
 #-------------------------------------------------------------------------------
-def help():
-    usage = """
-    
-    usage: 
-       %s dir dir ...
-
-    Converts CommonJS module files to Transport/D format.
-    
-    For each directory passed, converts all .js files in the directory,
-    recursively, to transport/D format, using the existing subdirectory
-    structure as the module path structure.  Modules in the top-level
-    directory are considered 'top level'.
-    
-    The generated files are suffixed as '.transportc.js', and co-located
-    in the same directory as the original .js files.
-    """ % PROGRAM
-    
-    print usage
-    sys.exit()
-
-#-------------------------------------------------------------------------------
-#
-#-------------------------------------------------------------------------------
 def log(message):
     print "%s: %s" % (PROGRAM, message)
 
