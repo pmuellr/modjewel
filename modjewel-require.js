@@ -31,7 +31,7 @@ var GLOBAL = this
 // some constants
 //----------------------------------------------------------------------------
 var PROGRAM = "modjewel"
-var VERSION = "0.3.1"
+var VERSION = "1.0.0"
 
 //----------------------------------------------------------------------------
 // if require() is already defined, leave

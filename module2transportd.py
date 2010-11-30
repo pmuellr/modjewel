@@ -11,9 +11,10 @@ import sys
 import optparse
 
 PROGRAM = os.path.basename(sys.argv[0])
-VERSION = "0.3.1"
+VERSION = "1.0.0"
 
 OutDir              = "."
+Quiet               = False
 TransportDExtension = ".transportd.js"
 
 #-------------------------------------------------------------------------------
@@ -21,6 +22,7 @@ TransportDExtension = ".transportd.js"
 #-------------------------------------------------------------------------------
 def main():
     global OutDir
+    global Quiet
 
     usage        = "usage: %s [options] inDir inDir ..." % PROGRAM
     version      = "%s %s" % (PROGRAM,VERSION)
@@ -44,11 +46,16 @@ module names.
         help="a line of code to start the test driver for HTML"
     )
 
+    parser.add_option("-q", "--quiet", dest="quiet", action="store_true", default=Quiet,
+        help="be quiet"
+    )
+
     parser.set_defaults(dirName=OutDir)
     
     (options, args) = parser.parse_args()
     
     OutDir = options.dirName
+    Quiet  = options.quiet
     
     help = False
     if len(args) == 0:   help = True
@@ -166,13 +173,14 @@ def processDir(dir, path=None, modules=None):
 #
 #-------------------------------------------------------------------------------
 def log(message):
+    if Quiet: return
     print "%s: %s" % (PROGRAM, message)
 
 #-------------------------------------------------------------------------------
 #
 #-------------------------------------------------------------------------------
 def error(message):
-    log(message)
+    print "%s: %s" % (PROGRAM, message)
     exit(1)
 
 #-------------------------------------------------------------------------------

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+import re
 import sys
 import shutil
 import subprocess
@@ -71,10 +72,10 @@ def main():
 def buildTest(testDir):
 
     # copy libraries
-    output = run(["../../module2transportd.py", "-o", testDir, "../../lib"])
+    output = run(["../../module2transportd.py", "-q", "-o", testDir, "../../lib"])
     
     #copy source
-    output = run(["../../module2transportd.py", "-o", testDir, os.path.join("..", testDir)])
+    output = run(["../../module2transportd.py", "-q", "-o", testDir, os.path.join("..", testDir)])
     
     # copy modjewel-require.js
     shutil.copy("../../modjewel-require.js", os.path.join(testDir, "modjewel-require.js"))
@@ -125,7 +126,8 @@ def getTests(testDir):
 #-------------------------------------------------------------------------------
 def run(cmdArgs):
     result = subprocess.Popen(cmdArgs, stdout=subprocess.PIPE).communicate()[0]
-    print result
+    if not re.match(r"\s*", result):
+        print result
 
 #-------------------------------------------------------------------------------
 #
