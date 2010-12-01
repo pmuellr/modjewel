@@ -55,11 +55,19 @@ function get_require(currentModule) {
         }
 
         if (ModuleStore.hasOwnProperty("_" + moduleId)) {
-            return ModuleStore["_" + moduleId].exports
+            var module = ModuleStore["_" + moduleId]
+            if (module.__isLoading) {
+                if (GLOBAL.require.warnOnRecursiveCalls) {
+                    var fromModule = currentModule ? currentModule.id : "<root>" 
+                    console.log("module '" + moduleId + "' recursively loaded from '" + fromModule + "', problem?")
+                }
+            }
+            return module.exports
         }
 
         if (!ModulePreloadStore.hasOwnProperty("_" + moduleId)) {
-            error("module '" + moduleId + "' not found from '" + currentModule.id + "', must be preloaded")
+            var fromModule = currentModule ? currentModule.id : "<root>" 
+            error("module '" + moduleId + "' not found from '" + fromModule + "', must be preloaded")
         }
         
         var moduleDefFunction = ModulePreloadStore["_" + moduleId]
