@@ -59,7 +59,7 @@ function get_require(currentModule) {
         }
 
         if (!ModulePreloadStore.hasOwnProperty("_" + moduleId)) {
-            error("module '" + moduleId + "' not found, must be preloaded")
+            error("module '" + moduleId + "' not found from '" + currentModule.id + "', must be preloaded")
         }
         
         var moduleDefFunction = ModulePreloadStore["_" + moduleId]
