@@ -1,3 +1,3 @@
 exports.foo = function() {
-    module.setExports({ abc: 123 })
+    module.exports = { abc: 123 }
 }

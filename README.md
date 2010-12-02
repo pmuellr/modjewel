@@ -10,6 +10,7 @@ designed for use in web browsers.
 
 Note that dynamic loading is not supported; see the note on `require.define()` below.
 
+
 Supported Interfaces
 ====================
 
@@ -38,6 +39,7 @@ see [http://wiki.commonjs.org/wiki/System/1.0](http://wiki.commonjs.org/wiki/Sys
 This module is not really supported, but a system module is supplied with a
 `print` method which will work in the browser and Rhino. 
 
+
 Extensions
 ==========
 
@@ -51,6 +53,64 @@ The object passed to this function is described in the
 [Transport/D proposal](http://wiki.commonjs.org/wiki/Modules/Transport/D),
 but the second parameter is ignored.
 
+
+The "modjewel" module
+=====================
+
+Using modjewel, you will have a free module available for you to `require()`,
+with the module id `"modjewel"`.  This module exports the following 
+properties and functions:
+
+`VERSION`
+-------
+
+Returns the current version of modjewel.
+
+`getLoadedModuleIds()`
+----------------------
+
+Returns an array of strings which are the module ids which have currently
+been loaded.
+
+`getPreloadedModuleIds()`
+-------------------------
+
+Returns an array of strings which are the module ids which have currently
+been preloaded with the `require.define()` function.
+
+`getModule(moduleId)`
+---------------------
+
+Returns the module with the specified moduleId.  Use `null` to get the
+primordial `main` module.
+
+`getModuleIdsRequired(moduleId)`
+--------------------------------
+
+Returns the module ids that the specified module `require()`'d.
+
+`warnOnRecursiveRequire([value])`
+--------------------------
+
+Issue a warning if a module is being recursively required.  That is,
+in the process of the module being loaded, if it requires a module
+that in turn ends up requiring itself, a console message is generated
+indicating this.
+
+In general, you don't need to worry about this.  You *do* need to worry
+about this if you make use of the `module.exports =` trick of changing
+your module's exports value.  In this case, your new `exports` object
+may not be set before another module needs it.  Using this flag will
+warn you of such cases.  You may need to restructure your modules, or
+change the order in which you set the `exports` object and make
+`require()` calls.
+
+Note that modjewel itself supports the `module.exports =` trick to
+reassign a module's `export` value.  This is useful if you'd like to
+export a single function or class from your module, so that clients
+of the module don't need to further derference the `exports` object
+to get at your goodies.
+
 Utilities
 ==========
 
@@ -58,8 +118,13 @@ module2transportd.py
 --------------------
 
 Convert CommonJS modules to Transport/D format.  It can also generate a HTML
-test driver to test the modules in a browser.  
+test driver to test the modules in a browser.  It generates files named
+`(original base name).transportd.js` from files named `(original base name).js`.
 
+The generated files have code prefixing and suffixing the original file
+contents with a `require.define()` invocation.  The contents of the file
+are otherwise unchanged, and the line numbers for the content will be the
+same in both files.
 
 Contact
 =======

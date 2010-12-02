@@ -16,7 +16,12 @@ function onLoad() {
         window.parent.testsStarting("@title@")
     }
     
-    require("program")
+    try {
+        require("program")
+    }
+    catch (e) {
+        print ("FAIL exception thrown: " + e)
+    }
 }
 
 //----------------------------------------------------------------------------
@@ -39,6 +44,7 @@ function print(message, status) {
 </script>
 </head>
 <body>
+<p>Tests generated on @date@
 <pre id="output"></pre>
 </body>
 </html>

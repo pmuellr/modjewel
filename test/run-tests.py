@@ -4,6 +4,7 @@ import os
 import re
 import sys
 import shutil
+import datetime
 import subprocess
 
 PROGRAM = sys.argv[0]
@@ -53,9 +54,10 @@ def main():
     iframesLines = "\n".join(iframes)
     
     # build the browser launcher
-    html = fileContents("../launcher-main.html.template")
+    html = fileContents("../launcher-main.template.html")
 
     html = html.replace("@iframes@", iframesLines)
+    html = html.replace("@date@", getDate())
     
     oFileName = "launcher-all.html"
     oFile = file(oFileName, "w")
@@ -80,7 +82,7 @@ def buildTest(testDir):
     # copy modjewel-require.js
     shutil.copy("../../modjewel-require.js", os.path.join(testDir, "modjewel-require.js"))
     
-    html = fileContents("../launcher-in-iframe.html.template")
+    html = fileContents("../launcher-in-iframe.template.html")
     
     # get the list of modules
     modules = [module for module in getModules(testDir)]
@@ -90,6 +92,7 @@ def buildTest(testDir):
     
     html = html.replace("@scripts@", scriptsLines)
     html = html.replace("@title@", testDir)
+    html = html.replace("@date@", getDate())
 
     # build HTML launcher for iframe
     oFileName = os.path.join(testDir, "launcher-in-iframe.html")
@@ -139,6 +142,8 @@ def fileContents(iFileName):
     
     return contents
 
+def getDate():
+     return datetime.datetime.today().isoformat(" ")
 #-------------------------------------------------------------------------------
 #
 #-------------------------------------------------------------------------------

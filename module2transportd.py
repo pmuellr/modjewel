@@ -11,7 +11,7 @@ import sys
 import optparse
 
 PROGRAM = os.path.basename(sys.argv[0])
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 
 OutDir              = "."
 Quiet               = False

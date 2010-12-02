@@ -1,1 +1,1 @@
-module.setExports(234)
+module.exports = 234

@@ -31,7 +31,7 @@ var GLOBAL = this
 // some constants
 //----------------------------------------------------------------------------
 var PROGRAM = "modjewel"
-var VERSION = "1.0.0"
+var VERSION = "1.1.0"
 
 //----------------------------------------------------------------------------
 // if require() is already defined, leave
@@ -41,8 +41,10 @@ if (GLOBAL.require) error("require already defined")
 //----------------------------------------------------------------------------
 // "globals" (local to this function scope though)
 //----------------------------------------------------------------------------
-var ModuleStore        = {}
-var ModulePreloadStore = {}
+var ModuleStore
+var ModulePreloadStore
+var MainModule
+var WarnOnRecursiveRequire = false
 
 //----------------------------------------------------------------------------
 // the require function
@@ -54,36 +56,37 @@ function get_require(currentModule) {
             moduleId = normalize(currentModule, moduleId)
         }
 
-        if (ModuleStore.hasOwnProperty("_" + moduleId)) {
-            var module = ModuleStore["_" + moduleId]
+        if (hop(ModuleStore, moduleId)) {
+            var module = ModuleStore[moduleId]
             if (module.__isLoading) {
-                if (GLOBAL.require.warnOnRecursiveCalls) {
+                if (WarnOnRecursiveRequire) {
                     var fromModule = currentModule ? currentModule.id : "<root>" 
-                    console.log("module '" + moduleId + "' recursively loaded from '" + fromModule + "', problem?")
+                    console.log("module '" + moduleId + "' recursively require()d from '" + fromModule + "', problem?")
                 }
             }
+            
+            currentModule.moduleIdsRequired.push(moduleId)
+            
             return module.exports
         }
 
-        if (!ModulePreloadStore.hasOwnProperty("_" + moduleId)) {
+        if (!hop(ModulePreloadStore, moduleId)) {
             var fromModule = currentModule ? currentModule.id : "<root>" 
             error("module '" + moduleId + "' not found from '" + fromModule + "', must be preloaded")
         }
         
-        var moduleDefFunction = ModulePreloadStore["_" + moduleId]
+        var moduleDefFunction = ModulePreloadStore[moduleId]
 
-        var module = { 
-            id:         moduleId, 
-            uri:        moduleId, 
-            exports:    {}
-        }
+        var module = create_module(moduleId)
 
         var newRequire = get_require(module) 
 
-        ModuleStore["_" + moduleId] = module
+        ModuleStore[moduleId] = module
         
         module.__isLoading = true
         try {
+            currentModule.moduleIdsRequired.push(moduleId)
+            
             moduleDefFunction.call({}, newRequire, module.exports, module)
         }
         finally {
@@ -109,14 +112,28 @@ function hop(object, name) {
 }
 
 //----------------------------------------------------------------------------
+// create a new module
+//----------------------------------------------------------------------------
+function create_module(id) {
+    return { 
+        id:                id, 
+        uri:               id, 
+        exports:           {},
+        moduleIdsRequired: []
+    }
+}
+
+//----------------------------------------------------------------------------
 // reset the stores
 //----------------------------------------------------------------------------
 function require_reset() {
     ModuleStore        = {}
     ModulePreloadStore = {}
+    MainModule         = create_module(null)
     
-    GLOBAL.require = undefined
-    GLOBAL.require = get_require()
+    GLOBAL.require = get_require(MainModule)
+    
+    require.define({modjewel: modjewel_module})
 }
 
 //----------------------------------------------------------------------------
@@ -139,11 +156,11 @@ function require_define(moduleSet) {
             error("require.define(): expecting a function as value of '" + moduleName + "' in moduleSet")
         }
         
-        if (ModulePreloadStore.hasOwnProperty("_" + moduleName)) {
+        if (hop(ModulePreloadStore, moduleName)) {
             error("require.define(): module '" + moduleName + "' has already been preloaded")
         }
 
-        ModulePreloadStore["_" + moduleName] = moduleDefFunction
+        ModulePreloadStore[moduleName] = moduleDefFunction
     }
 }
 
@@ -198,10 +215,75 @@ function error(message) {
 }
 
 //----------------------------------------------------------------------------
+// get a list of loaded modules
+//----------------------------------------------------------------------------
+function modjewel_getLoadedModuleIds() {
+    var result = []
+    
+    for (moduleId in ModuleStore) {
+        result.push(moduleId)
+    }
+    
+    return result
+}
+
+//----------------------------------------------------------------------------
+// get a list of the preloaded module ids
+//----------------------------------------------------------------------------
+function modjewel_getPreloadedModuleIds() {
+    var result = []
+    
+    for (moduleId in ModulePreloadStore) {
+        result.push(moduleId)
+    }
+    
+    return result
+}
+
+//----------------------------------------------------------------------------
+// get a module by module id
+//----------------------------------------------------------------------------
+function modjewel_getModule(moduleId) {
+    if (null == moduleId) return MainModule
+    
+    return ModuleStore[moduleId]
+}
+
+//----------------------------------------------------------------------------
+// get a list of module ids which have been required by the specified module id
+//----------------------------------------------------------------------------
+function modjewel_getModuleIdsRequired(moduleId) {
+    var module = modjewel_getModule(moduleId)
+    if (null == module) return null
+    
+    return module.moduleIdsRequired.slice()
+}
+
+//----------------------------------------------------------------------------
+// set the WarnOnRecursiveRequireFlag
+// - if you make use of "module.exports =" in your code, you will want this on
+//----------------------------------------------------------------------------
+function modjewel_warnOnRecursiveRequire(value) {
+    if (arguments.length == 0) return WarnOnRecursiveRequire
+    WarnOnRecursiveRequire = !!value
+}
+
+//----------------------------------------------------------------------------
+// the modjewel module
+//----------------------------------------------------------------------------
+function modjewel_module(require, exports, module) {
+    exports.VERSION                = VERSION
+    exports.getLoadedModuleIds     = modjewel_getLoadedModuleIds
+    exports.getPreloadedModuleIds  = modjewel_getPreloadedModuleIds
+    exports.getModule              = modjewel_getModule
+    exports.getModuleIdsRequired   = modjewel_getModuleIdsRequired
+    exports.warnOnRecursiveRequire = modjewel_warnOnRecursiveRequire
+}
+
+//----------------------------------------------------------------------------
 // make the require function a global
 //----------------------------------------------------------------------------
 require_reset()
-
 
 //----------------------------------------------------------------------------
 })();
