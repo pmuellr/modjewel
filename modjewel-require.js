@@ -87,7 +87,7 @@ function get_require(currentModule) {
         try {
             currentModule.moduleIdsRequired.push(moduleId)
             
-            moduleDefFunction.call({}, newRequire, module.exports, module)
+            moduleDefFunction.call(GLOBAL, newRequire, module.exports, module)
         }
         finally {
             module.__isLoading = false
