@@ -150,17 +150,20 @@ function require_define(moduleSet) {
         if (!hop(moduleSet, moduleName)) continue
         
         if (moduleName.match(/^\./)) {
-            error("require.define(): moduleName in moduleSet must not start with '.': '" + moduleName + "'")
+            console.log("require.define(): moduleName in moduleSet must not start with '.': '" + moduleName + "'")
+            return
         }
         
         var moduleDefFunction = moduleSet[moduleName]
         
         if (typeof moduleDefFunction != "function") {
-            error("require.define(): expecting a function as value of '" + moduleName + "' in moduleSet")
+            console.log("require.define(): expecting a function as value of '" + moduleName + "' in moduleSet")
+            return
         }
         
         if (hop(ModulePreloadStore, moduleName)) {
-            error("require.define(): module '" + moduleName + "' has already been preloaded")
+            console.log("require.define(): module '" + moduleName + "' has already been preloaded")
+            return
         }
 
         ModulePreloadStore[moduleName] = moduleDefFunction
