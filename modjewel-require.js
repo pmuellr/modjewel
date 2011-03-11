@@ -36,7 +36,10 @@ var VERSION = "1.1.0"
 //----------------------------------------------------------------------------
 // if require() is already defined, leave
 //----------------------------------------------------------------------------
-if (GLOBAL.require) error("require already defined")
+if (GLOBAL.require) {
+    console.log("modjewel: require already defined")
+    return
+}
 
 //----------------------------------------------------------------------------
 // "globals" (local to this function scope though)
