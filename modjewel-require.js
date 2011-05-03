@@ -21,11 +21,15 @@
 //----------------------------------------------------------------------------
 
 //----------------------------------------------------------------------------
+// globals
+//----------------------------------------------------------------------------
+var require
+var modjewel
+
+//----------------------------------------------------------------------------
 // function wrapper
 //----------------------------------------------------------------------------
 (function(){
-
-var GLOBAL = this
 
 //----------------------------------------------------------------------------
 // some constants
@@ -36,10 +40,13 @@ var VERSION = "1.1.0"
 //----------------------------------------------------------------------------
 // if require() is already defined, leave
 //----------------------------------------------------------------------------
-if (GLOBAL.require) {
-    console.log("modjewel: require already defined")
+if (modjewel) {
+    log("modjewel global variable already defined")
     return
 }
+
+var OriginalRequire = require
+var NoConflict      = false
 
 //----------------------------------------------------------------------------
 // "globals" (local to this function scope though)
@@ -90,7 +97,7 @@ function get_require(currentModule) {
         try {
             currentModule.moduleIdsRequired.push(moduleId)
             
-            moduleDefFunction.call(GLOBAL, newRequire, module.exports, module)
+            moduleDefFunction.call(null, newRequire, module.exports, module)
         }
         finally {
             module.__isLoading = false
@@ -99,7 +106,6 @@ function get_require(currentModule) {
         return module.exports
     }
     
-    result.reset          = require_reset
     result.define         = require_define
     result.implementation = PROGRAM
     result.version        = VERSION
@@ -108,7 +114,7 @@ function get_require(currentModule) {
 }
 
 //----------------------------------------------------------------------------
-// safe version of hasOwnProperty
+// shorter version of hasOwnProperty
 //----------------------------------------------------------------------------
 function hop(object, name) {
     return Object.prototype.hasOwnProperty.call(object, name)
@@ -134,9 +140,11 @@ function require_reset() {
     ModulePreloadStore = {}
     MainModule         = create_module(null)
     
-    GLOBAL.require = get_require(MainModule)
+    require = get_require(MainModule)
     
     require.define({modjewel: modjewel_module})
+    
+    modjewel = require("modjewel")
 }
 
 //----------------------------------------------------------------------------
@@ -275,15 +283,35 @@ function modjewel_warnOnRecursiveRequire(value) {
 }
 
 //----------------------------------------------------------------------------
+// relinquish modjewel's control of the require variable
+// - like jQuery's version'
+//----------------------------------------------------------------------------
+function modjewel_noConflict() {
+    NoConflict = true
+    
+    require = OriginalRequire
+}
+
+//----------------------------------------------------------------------------
 // the modjewel module
 //----------------------------------------------------------------------------
 function modjewel_module(require, exports, module) {
     exports.VERSION                = VERSION
+    exports.require                = require
+    exports.define                 = require.define
     exports.getLoadedModuleIds     = modjewel_getLoadedModuleIds
     exports.getPreloadedModuleIds  = modjewel_getPreloadedModuleIds
     exports.getModule              = modjewel_getModule
     exports.getModuleIdsRequired   = modjewel_getModuleIdsRequired
     exports.warnOnRecursiveRequire = modjewel_warnOnRecursiveRequire
+    exports.noConflict             = modjewel_noConflict
+}
+
+//----------------------------------------------------------------------------
+// log a message
+//----------------------------------------------------------------------------
+function log(message) {
+    console.log("modjewel: " + message)
 }
 
 //----------------------------------------------------------------------------
