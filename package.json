@@ -1,0 +1,21 @@
+{
+  "name": "modjewel",
+  "description": "modjewel provides a require() function for use with CommonJS modules, designed for use in web browsers.",
+  "version": "0.2.0",
+  "homepage": "https://github.com/pmuellr/modjewel",
+  "author": "Patrick Mueller",
+  "directories": {
+    "test": "test",
+    "lib": "lib"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pmuellr/modjewel.git" 
+  },
+  "scripts": {
+    "test": "test/run-tests.py"
+  },
+  "bin": {
+    "module2transportd": "module2transportd.py"
+  }
+}
