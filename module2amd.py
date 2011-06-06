@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #-------------------------------------------------------------------------------
-# Copyright (c) 2010 Patrick Mueller
+# Copyright (c) 2011 Patrick Mueller
 # 
 # The MIT License - see: http://www.opensource.org/licenses/mit-license.php
 #-------------------------------------------------------------------------------
@@ -11,11 +11,11 @@ import sys
 import optparse
 
 PROGRAM = os.path.basename(sys.argv[0])
-VERSION = "1.1.0"
+VERSION = "1.2.0"
 
 OutDir              = "."
 Quiet               = False
-TransportDExtension = ".transportd.js"
+AMDExtension        = ".amd.js"
 
 #-------------------------------------------------------------------------------
 #
@@ -27,15 +27,15 @@ def main():
     usage        = "usage: %s [options] inDir inDir ..." % PROGRAM
     version      = "%s %s" % (PROGRAM,VERSION)
     description  = """
-Converts .js files in the inDir directories to Transport/D format.
-See: http://wiki.commonjs.org/wiki/Modules/Transport/D for more info.
-Each inDir is considered a 'root' directory for generating relative
-module names.
+Converts .js files in the inDir directories to AMD format.  See: 
+http://wiki.commonjs.org/wiki/Modules/AsynchronousDefinition for more 
+info.  Each inDir is considered a 'root' directory for generating 
+relative module names.
 """.strip()
     parser = optparse.OptionParser(usage=usage, version=version, description=description)
     
     parser.add_option("-o", "--out", dest="dirName", metavar = "DIR",
-        help="generate transportD files in DIR (default: %default)"
+        help="generate AMD files in DIR (default: %default)"
     )
     
     parser.add_option("--htmlFile", dest="htmlFile", metavar = "FILE",
@@ -82,7 +82,7 @@ module names.
     contents.append("")
 
     for module in modules:
-        contents.append("<script src='%s%s'></script>" % (module, TransportDExtension))
+        contents.append("<script src='%s%s'></script>" % (module, AMDExtension))
 
     contents.append("")
     contents.append("<script>")
@@ -119,14 +119,14 @@ def processDir(dir, path=None, modules=None):
             continue
         
         if not os.path.isfile(fullEntry):           continue
-        if     entry.endswith(TransportDExtension): continue
+        if     entry.endswith(AMDExtension):        continue
         if not entry.endswith(".js"):               continue
     
         baseName  = entry[:-3]
         iFileName = fullEntry
         oDir      = "/".join(path)
         oFileName = os.path.join(OutDir, oDir, baseName)
-        oFileName = "%s%s" % (oFileName, TransportDExtension)
+        oFileName = "%s%s" % (oFileName, AMDExtension)
         
         if False:
             print "processing:   %s" % fullEntry
@@ -144,8 +144,8 @@ def processDir(dir, path=None, modules=None):
         
         modules.append(moduleName)
         
-        header  = ';require.define({"%s": function(require, exports, module) {' % moduleName
-        trailer = '}});'
+        header  = ';define("%s", function(require, exports, module) {' % moduleName
+        trailer = '});'
 
         newContents = "%s %s\n%s\n" % (header, contents, trailer)
         

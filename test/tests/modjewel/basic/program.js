@@ -52,4 +52,11 @@ modjewel.warnOnRecursiveRequire(true)
 test.assert(modjewel.warnOnRecursiveRequire(),  "modjewel.warnOnRecursiveRequire() can be set to true")
 
 //------------------------------------------------------------------------------
+test.assert(window.require != null, "require is not null")
+test.assert(window.define != null,  "define is not null")
+modjewel.noConflict()
+test.assert(window.require == null, "require is null")
+test.assert(window.define == null,  "define is null")
+
+//------------------------------------------------------------------------------
 test.print('DONE', 'info')

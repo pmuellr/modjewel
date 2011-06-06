@@ -74,10 +74,10 @@ def main():
 def buildTest(testDir):
 
     # copy libraries
-    output = run(["../../module2transportd.py", "-q", "-o", testDir, "../../lib"])
+    output = run(["../../module2amd.py", "-q", "-o", testDir, "../../lib"])
     
     #copy source
-    output = run(["../../module2transportd.py", "-q", "-o", testDir, os.path.join("..", testDir)])
+    output = run(["../../module2amd.py", "-q", "-o", testDir, os.path.join("..", testDir)])
     
     # copy modjewel-require.js
     shutil.copy("../../modjewel-require.js", os.path.join(testDir, "modjewel-require.js"))
@@ -107,7 +107,7 @@ def getModules(testDir):
     modules = []
     for root, dirs, files in os.walk(testDir):
         for file in files:
-            if not file.endswith(".transportd.js"): continue
+            if not file.endswith(".amd.js"): continue
             
             modules.append(os.path.relpath(os.path.join(root, file), testDir))
 
