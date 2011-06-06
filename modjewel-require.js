@@ -1,5 +1,5 @@
 //----------------------------------------------------------------------------
-// Copyright (c) 2010 Patrick Mueller
+// Copyright (c) 2010, 2011 Patrick Mueller
 // 
 // The MIT License - see: http://www.opensource.org/licenses/mit-license.php
 //----------------------------------------------------------------------------
@@ -15,16 +15,10 @@
 //----------------------------------------------------------------------------
 
 //----------------------------------------------------------------------------
-// only supports "preloaded" modules ala require.define (Transport/D)
-//    http://wiki.commonjs.org/wiki/Modules/Transport/D
-// but only supports the first parameter
+// only supports "preloaded" modules ala define() (AMD)
+//    http://wiki.commonjs.org/wiki/Modules/AsynchronousDefinition
+// but the id parameter is required
 //----------------------------------------------------------------------------
-
-//----------------------------------------------------------------------------
-// globals
-//----------------------------------------------------------------------------
-var require
-var modjewel
 
 //----------------------------------------------------------------------------
 // function wrapper
@@ -35,17 +29,21 @@ var modjewel
 // some constants
 //----------------------------------------------------------------------------
 var PROGRAM = "modjewel"
-var VERSION = "1.1.0"
+var VERSION = "1.2.0"
+var global  = this
 
 //----------------------------------------------------------------------------
 // if require() is already defined, leave
 //----------------------------------------------------------------------------
-if (modjewel) {
+if (global.modjewel) {
     log("modjewel global variable already defined")
     return
 }
 
-var OriginalRequire = require
+global.modjewel = null
+
+var OriginalRequire = global.require
+var OriginalDefine  = global.define
 var NoConflict      = false
 
 //----------------------------------------------------------------------------
@@ -82,10 +80,11 @@ function get_require(currentModule) {
 
         if (!hop(ModulePreloadStore, moduleId)) {
             var fromModule = currentModule ? currentModule.id : "<root>" 
-            error("module '" + moduleId + "' not found from '" + fromModule + "', must be preloaded")
+            error("module '" + moduleId + "' not found from '" + fromModule + "', must be define()'d first")
         }
         
-        var moduleDefFunction = ModulePreloadStore[moduleId]
+        var factory = ModulePreloadStore[moduleId][0]
+        var prereqs = ModulePreloadStore[moduleId][1]
 
         var module = create_module(moduleId)
 
@@ -97,7 +96,28 @@ function get_require(currentModule) {
         try {
             currentModule.moduleIdsRequired.push(moduleId)
             
-            moduleDefFunction.call(null, newRequire, module.exports, module)
+            var prereqModules = []
+            for (var i=0; i<prereqs.length; i++) {
+                var prereqId = prereqs[i]
+                var prereqModule
+                
+                if      (prereqId == "require") prereqModule = newRequire
+                else if (prereqId == "exports") prereqModule = module.exports
+                else if (prereqId == "module")  prereqModule = module
+                else                            prereqModule = newRequire(prereqId)
+                
+                prereqModules.push(prereqModule)
+            }
+            
+            if (typeof factory == "function") {
+                var result = factory.apply(null, prereqModules)
+                if (result) {
+                    module.exports = result
+                }
+            }
+            else {
+                module.exports = factory
+            }
         }
         finally {
             module.__isLoading = false
@@ -128,6 +148,7 @@ function create_module(id) {
         id:                id, 
         uri:               id, 
         exports:           {},
+        prereqIds:         [],
         moduleIdsRequired: []
     }
 }
@@ -139,43 +160,59 @@ function require_reset() {
     ModuleStore        = {}
     ModulePreloadStore = {}
     MainModule         = create_module(null)
+
+    require_define("modjewel", modjewel_module)
     
-    require = get_require(MainModule)
-    
-    require.define({modjewel: modjewel_module})
-    
-    modjewel = require("modjewel")
+    global.require    = get_require(MainModule)
+    global.define     = require_define
+    global.define.amd = true
+    global.modjewel   = require("modjewel")
 }
 
 //----------------------------------------------------------------------------
 // used by pre-built modules that can be included via <script src=>
 // a simplification of 
-//    http://wiki.commonjs.org/wiki/Modules/Transport/D
-// but only supports the first parameter
+//    http://wiki.commonjs.org/wiki/Modules/AsynchronousDefinition
+// where id is required
 //----------------------------------------------------------------------------
-function require_define(moduleSet) {
-    for (var moduleName in moduleSet) {
-        if (!hop(moduleSet, moduleName)) continue
-        
-        if (moduleName.match(/^\./)) {
-            console.log("require.define(): moduleName in moduleSet must not start with '.': '" + moduleName + "'")
-            return
-        }
-        
-        var moduleDefFunction = moduleSet[moduleName]
-        
-        if (typeof moduleDefFunction != "function") {
-            console.log("require.define(): expecting a function as value of '" + moduleName + "' in moduleSet")
-            return
-        }
-        
-        if (hop(ModulePreloadStore, moduleName)) {
-            console.log("require.define(): module '" + moduleName + "' has already been preloaded")
-            return
-        }
-
-        ModulePreloadStore[moduleName] = moduleDefFunction
+function require_define(moduleId, prereqs, factory) {
+    var rem = ["require", "exports", "module"]
+    
+    if (typeof moduleId != "string") {
+        console.log("modjewel.define(): first parameter must be a string; was: " + moduleId)
+        return
     }
+    
+    if (arguments.length == 2) {
+        factory = prereqs
+        prereqs = null
+    }
+    
+    if (!prereqs || prereqs.length == 0) {
+        prereqs = rem
+    }
+
+    if (typeof factory != "function") {
+        if (factory) {
+            ModulePreloadStore[moduleId] = [factory, prereqs]
+            return
+        }
+        
+        console.log("modjewel.define(): factory was falsy: " + factory)
+        return
+    }
+    
+    if (moduleId.match(/^\./)) {
+        console.log("modjewel.define(): moduleId must not start with '.': '" + moduleName + "'")
+        return
+    }
+    
+    if (hop(ModulePreloadStore, moduleId)) {
+        console.log("modjewel.define(): module '" + moduleId + "' has already been defined")
+        return
+    }
+
+    ModulePreloadStore[moduleId] = [factory, prereqs]
 }
 
 //----------------------------------------------------------------------------
@@ -289,7 +326,8 @@ function modjewel_warnOnRecursiveRequire(value) {
 function modjewel_noConflict() {
     NoConflict = true
     
-    require = OriginalRequire
+    global.require = OriginalRequire
+    global.define  = OriginalDefine
 }
 
 //----------------------------------------------------------------------------

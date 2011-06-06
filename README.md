@@ -4,11 +4,13 @@ modjewel
 Summary
 -------
 
-The `modjewel-require.js` file provides a `require()` 
-function for use with [CommonJS](http://commonjs.org/) modules, 
-designed for use in web browsers.
+The `modjewel-require.js` file provides `require()` and `define()`
+functions for use with [CommonJS](http://commonjs.org/) modules, 
+designed for use in web browsers.  The `define()` function is as
+specified in [Asynchronous Module Definition](http://wiki.commonjs.org/wiki/Modules/AsynchronousDefinition)
+(AMD).
 
-Note that dynamic loading is not supported; see the note on `require.define()` below.
+Note that dynamic loading is not supported; see the note on `define()` below.
 
 
 Supported Interfaces
@@ -43,15 +45,14 @@ This module is not really supported, but a system module is supplied with a
 Extensions
 ==========
 
-require.define()
+define()
 -----------------
 
 This function allows you to "preload" a module.  In fact, this is the only way
 to load modules - modules are never loaded dynamically.
 
-The object passed to this function is described in the 
-[Transport/D proposal](http://wiki.commonjs.org/wiki/Modules/Transport/D),
-but the second parameter is ignored.
+The object passed to this function is described in 
+[Asynchronous Module Definition](http://wiki.commonjs.org/wiki/Modules/AsynchronousDefinition).
 
 
 The "modjewel" module
@@ -114,15 +115,15 @@ to get at your goodies.
 Utilities
 ==========
 
-module2transportd.py
+module2amd.py
 --------------------
 
-Convert CommonJS modules to Transport/D format.  It can also generate a HTML
+Convert CommonJS modules to AMD format.  It can also generate a HTML
 test driver to test the modules in a browser.  It generates files named
-`(original base name).transportd.js` from files named `(original base name).js`.
+`(original base name).amd.js` from files named `(original base name).js`.
 
 The generated files have code prefixing and suffixing the original file
-contents with a `require.define()` invocation.  The contents of the file
+contents with a `define()` invocation.  The contents of the file
 are otherwise unchanged, and the line numbers for the content will be the
 same in both files.
 
